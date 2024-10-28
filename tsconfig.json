@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "module": "ES2022",
+      "esModuleInterop": true,
+      "target": "es6",
+      "moduleResolution": "Bundler",
+      "sourceMap": true,
+      "outDir": "dist",
+    },
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "node_modules"
+    ],
+  }
+  
