@@ -58,32 +58,10 @@ test('delete', async () => {
 });
 
 test('search', async () => {
-    const results = await global.db.search("Protons and neutrons");
-    expect([0,1]).toContain(results[0].id);
-    expect([0,1]).toContain(results[1].id);
-});
-
-test('search pagination', async () => {
-    const results = [];
-    for (let i = 0; i < 3; i++){
-        results.push(await global.db.search("Protons and neutrons", i, 5));
-    }
-    expect(results[0].length).toBe(5);
-    // Only 1 result, because the first 5 were consumed by the first page.
-    expect(results[1].length).toBe(1);
-    // No results, because the first 6 were consumed by the first two pages.
-    expect(results[2].length).toBe(0);
-
-    const flattenedResults = []
-    for (const page of results){
-        for (const result of page){
-            // Results should not be duplicated across pages.
-            expect(flattenedResults).not.toContain(result)
-            flattenedResults.push(result);
-        }
-    }
-    // Test other page sizes
-    expect((await global.db.search("Protons and neutrons", 0, 3)).length).toBe(3);
-    // Only 6 results exist, so the page size should be 6.
-    expect((await global.db.search("Protons and neutrons", 0, 7)).length).toBe(6);
+    const defaultResults = await global.db.search("Protons and neutrons");
+    expect([0,1]).toContain(defaultResults[0].id);
+    expect([0,1]).toContain(defaultResults[1].id);
+    
+    const resultsLimit = await global.db.search("Protons and neutrons", 5);
+    expect(resultsLimit.length).toBe(5);
 });

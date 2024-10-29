@@ -42,8 +42,8 @@ export class SemanticSearchDB{
         this.distanceType = "l2";
     }
     
-    // Create the database table. Opens the table if it already exists.
-    private async createOrOpenTable(){
+    // Open the database table. If the table doesn't exist, create it.
+    private async createAndOpenTable(){
         const registry = lancedb.embedding.getRegistry();
 
         const cohereEmbeddings = await registry
@@ -65,7 +65,7 @@ export class SemanticSearchDB{
         //console.log(process.env);
         const uri = process.env.LANCEDB_URI;
         this.db = await lancedb.connect(uri);
-        this.table = await this.createOrOpenTable();
+        this.table = await this.createAndOpenTable();
     }
 
     // Close the connection to the database.
@@ -95,17 +95,17 @@ export class SemanticSearchDB{
     }
 
     // Perform a vector search on the database.
-    async search(query: string, page: number = 0, pageSize: number = 10){
+    async search(query: string, limit: number = 10){
         const vectorQuery = (await this.cohere.embedQueries([query]))[0];
         const results = this.table.vectorSearch(vectorQuery)
             .distanceType(this.distanceType)
             .select(["id", "text"])
-            .limit(pageSize*(page+1))
+            .limit(limit)
             .toArray();
-        // LanceDB may add an offset function in the future, which would allow us to avoid slicing the results.
-        return (await results).slice(pageSize*page, pageSize*(page+1));
+        return results;
     }
 
+    // Delete a problem from the database by ID.
     async delete(id: number){
         return this.table.delete(`id = ${id}`);
     }
