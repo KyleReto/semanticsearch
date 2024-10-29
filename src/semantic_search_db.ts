@@ -2,6 +2,9 @@ import { Cohere } from './cohere.js'
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
 
+const DISTANCE_TYPE: "l2" | "cosine" | "dot" = "l2";
+const TABLE_NAME = "problems";
+
 // Note that a Cohere embedding function will likely be added to lancedb in the future.
 @lancedb.embedding.register("cohere")
 class CohereEmbeddings extends lancedb.embedding.TextEmbeddingFunction{
@@ -38,8 +41,8 @@ export class SemanticSearchDB{
 
     constructor(){
         this.cohere = new Cohere();
-        this.tableName = "problems";
-        this.distanceType = "l2";
+        this.tableName = TABLE_NAME;
+        this.distanceType = DISTANCE_TYPE;
     }
     
     // Open the database table. If the table doesn't exist, create it.

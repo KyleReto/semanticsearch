@@ -26,13 +26,13 @@ afterEach(async () => {
     await global.db.close();
 });
 
-test('get', async () => {
+test('Get a Document by ID', async () => {
     const doc = await global.db.get(0);
     expect(doc.id).toBe(0);
     expect(doc.text).toBe("The nucleus of an atom has which two particles?");
 });
 
-test('add', async () => {
+test('Add a New Document', async () => {
     // Note the lack of ID #6 - gaps should be allowed.
     await global.db.add(7, "What is the capital of France?");
     const doc = await global.db.get(7);
@@ -41,7 +41,7 @@ test('add', async () => {
     expect(async () => global.db.add(7, "")).rejects.toThrowError("already exists");
 });
 
-test('update', async () => {
+test('Update an Existing Document', async () => {
     await global.db.update(4, "What is the capital of France?");
     const doc = await global.db.get(4);
     expect(doc.id).toBe(4);
@@ -52,12 +52,12 @@ test('update', async () => {
     expect(searchResults[0].id).not.toBe(4);
 });
 
-test('delete', async () => {
+test('Delete a Document', async () => {
     await global.db.delete(4);
     expect(await global.db.get(4)).toBe(undefined);
 });
 
-test('search', async () => {
+test('Search for Documents by Vector', async () => {
     const defaultResults = await global.db.search("Protons and neutrons");
     expect([0,1]).toContain(defaultResults[0].id);
     expect([0,1]).toContain(defaultResults[1].id);

@@ -27,21 +27,27 @@ export class Cohere {
         return embeddings;
     }
 
-    // Embed one or more documents (problems) to be searched using Cohere.
-    // Note that queries should instead use embedQuery.
-    async embedDocuments(texts: Array<string>): Promise<number[][]> {
-        const cohereInput = {
-            // Texts longer than 512 tokens (~200 words) will be truncated.
-            "texts": texts,
-            "input_type": "search_document",
-            "embedding_types": ["float"]
+    // Embed one or more documents to search for queries using Cohere.
+        // Queries should instead use embedQueries.
+    async embedDocuments(texts: string[]): Promise<number[][]> {
+        const promises: Promise<number[][]>[] = [];
+        // Cohere can only embed up to 96 texts at a time, so we batch them.
+        for (let i = 0; i < texts.length; i += 96) {
+            const batch = texts.slice(i, i + 96);
+            const cohereInput = {
+                // Texts longer than 512 tokens (~200 words) will be truncated.
+                "texts": batch,
+                "input_type": "search_document",
+                "embedding_types": ["float"]
+            }
+            promises.push(this.invokeCohere(cohereInput));
         }
-        return this.invokeCohere(cohereInput);
+        return (await Promise.all(promises)).flat();
     }
 
     // Embed one or more queries to search for documents using Cohere.
-    // Note that documents should instead use embedDocuments.
-    async embedQueries(texts: Array<string>): Promise<number[][]> {
+        // Documents should instead use embedDocuments.
+    async embedQueries(texts: string[]): Promise<number[][]> {
         const cohereInput = {
             // Texts longer than 512 tokens (~200 words) will be truncated.
             "texts": texts,

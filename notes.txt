@@ -1,9 +1,9 @@
-This folder (or potentially repo in future) is for exploring semantic search in typescript.
+This repo is for exploring semantic search in typescript.
+(This document to be replaced with a readme in future)
 
 The general idea is as follows:
 The system will be written in typescript, to fit with our existing backend (ie, not running on the ML server)
 We'll be using Cohere multilingual embeddings in AWS Bedrock.
-
 
 1. A TS function should be written to convert arbitrary question text to embeddings.
 
@@ -16,6 +16,8 @@ We'll be using Cohere multilingual embeddings in AWS Bedrock.
 
 4. The vector database should store a map of question IDs to their embeddings.
 
+Notes:
+Cohere offers a batch embedding service, but our dataset isn't nearly large enough to require using it.
 
 The AWS Node SDK is used for AWS connections (https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/getting-started-nodejs.html)
 Specifically, the `@aws-sdk/client-bedrock-runtime` package is used for Cohere.
@@ -25,7 +27,6 @@ The package is called `@lancedb/lancedb`.
     Note that lanceDB requires the openai package, which it may not install automatically.
 
 TODO:
-Add batch embeddings test + function
 Add batch lanceDB document add tests + function
 Optimize DB - Index for IDs, ANN
 Add script to batch add documents
