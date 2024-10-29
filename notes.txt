@@ -22,3 +22,11 @@ Specifically, the `@aws-sdk/client-bedrock-runtime` package is used for Cohere.
 
 The LanceDB package is used for the LanceDB connection (https://lancedb.github.io/lancedb/basic/#__tabbed_1_2).
 The package is called `@lancedb/lancedb`.
+    Note that lanceDB requires the openai package, which it does not install automatically.
+
+TODO:
+Add batch embeddings test + function
+Add batch lanceDB document add tests + function
+Optimize DB - Index for IDs, ANN
+Add script to batch add documents
+Add graphQL resolver to call search function

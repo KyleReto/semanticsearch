@@ -1,13 +1,14 @@
 import express from 'express';
 import { Cohere } from './cohere.js'
+import dotenv from 'dotenv'
 
-require('dotenv').config();
+dotenv.config();
 const app = express();
 const port = 3000;
 
 // Just for testing purposes; the final routes will be embedded into the existing backend.
 app.get('/', async (req, res) => {
-    let cohereConn = new Cohere()
+    const cohereConn = new Cohere()
     if (typeof req.query.document === 'string'){
         const output = await cohereConn.embedDocuments([req.query.document])
         res.send(JSON.stringify(output[0]));
