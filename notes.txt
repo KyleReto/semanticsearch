@@ -27,7 +27,6 @@ The package is called `@lancedb/lancedb`.
     Note that lanceDB requires the openai package, which it may not install automatically.
 
 TODO:
-Add batch lanceDB document add tests + function
-Optimize DB - Index for IDs, ANN
-Add script to batch add documents
+Roll update functions into add as overwrite param
+Write readme
 Add graphQL resolver to call search function

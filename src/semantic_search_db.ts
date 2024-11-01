@@ -4,6 +4,7 @@ import * as arrow from "apache-arrow";
 
 const DISTANCE_TYPE: "l2" | "cosine" | "dot" = "l2";
 const TABLE_NAME = "problems";
+const BATCH_CONCURRENCY = 20;
 
 // Note that a Cohere embedding function will likely be added to lancedb in the future.
 @lancedb.embedding.register("cohere")
@@ -38,11 +39,13 @@ export class SemanticSearchDB{
     tableName: string
     table: lancedb.Table
     distanceType: "l2" | "cosine" | "dot"
+    batchConcurrency: number
 
     constructor(){
         this.cohere = new Cohere();
         this.tableName = TABLE_NAME;
         this.distanceType = DISTANCE_TYPE;
+        this.batchConcurrency = BATCH_CONCURRENCY;
     }
     
     // Open the database table. If the table doesn't exist, create it.
@@ -60,12 +63,33 @@ export class SemanticSearchDB{
             text: cohereEmbeddings.sourceField(),
             vector: cohereEmbeddings.vectorField(),
         });
-        return this.db.createEmptyTable(this.tableName, schema, {existOk: true})
+
+        // Despite the name, this function does not guarantee that the table is empty.
+        return this.db.createEmptyTable(this.tableName, schema, {existOk: true});
+    }
+
+    private async createIndices(){
+        const existingIndices = await this.table.listIndices();
+        if (!existingIndices.some(e => e.columns.includes("id"))){
+            await this.table.createIndex("id", { config: lancedb.Index.btree() });
+        }
+        if (
+            // Vector optimizations require a 256+ length table.
+            await this.table.countRows() >= 256 && 
+            !existingIndices.some(e => e.columns.includes("vector"))
+        ){
+            await this.table.createIndex("vector", { config: lancedb.Index.ivfPq({distanceType: this.distanceType}) })
+        }
+    }
+
+    // Optimize the database table. Run this occasionally to improve performance.
+    async optimize(){
+        await this.createIndices();
+        await this.table.optimize();
     }
 
     // Open the connection to the database, creating the table if it doesn't exist.
     async open(){
-        //console.log(process.env);
         const uri = process.env.LANCEDB_URI;
         this.db = await lancedb.connect(uri);
         this.table = await this.createAndOpenTable();
@@ -76,7 +100,7 @@ export class SemanticSearchDB{
         this.db.close();
     }
 
-    // Add a problem to the database without updating existing records.
+    // Add a single problem to the database without updating existing records.
     async add(id: number, text: string){
         const data = [{ text: text, id: id}];
         if (await this.get(id) !== undefined){
@@ -84,6 +108,25 @@ export class SemanticSearchDB{
         } else {
             return this.table.add(data);
         }
+    }
+
+    async addBatch(data: {id: number, text: string}[]){
+        // At time of writing, LanceDB cannot enforce uniqueness, so we have to do it manually.
+        // Check for duplicate IDs in the input data.
+        const idsInInput = data.map(d => d.id);
+        for (let i = 0; i < idsInInput.length; i++){
+            for (let j = i + 1; j < idsInInput.length; j++){
+                if (idsInInput[i] === idsInInput[j]){
+                    throw new Error(`Document ID duplicated in input data: ${idsInInput[i]}`);
+                }
+            }
+        }
+        // Check for duplicate IDs in the database.
+        const matchingIds = await this.table.query().where(`id IN (${idsInInput.join(",")})`).toArray();
+        if (matchingIds.length > 0){
+            throw new Error(`Document ID already exists in the database: ${matchingIds[0].id}`);
+        }
+        return this.table.add(data);
     }
 
     // Update an existing problem in the database.
