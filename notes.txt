@@ -27,6 +27,5 @@ The package is called `@lancedb/lancedb`.
     Note that lanceDB requires the openai package, which it may not install automatically.
 
 TODO:
-Roll update functions into add as overwrite param
 Write readme
 Add graphQL resolver to call search function

@@ -1,11 +1,9 @@
 import { Cohere } from './cohere.js'
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
-import e from 'express';
 
 const DISTANCE_TYPE: "l2" | "cosine" | "dot" = "l2";
 const TABLE_NAME = "problems";
-const BATCH_CONCURRENCY = 20;
 
 // Note that a Cohere embedding function will likely be added to lancedb in the future.
 @lancedb.embedding.register("cohere")
@@ -99,21 +97,7 @@ export class SemanticSearchDB{
         this.db.close();
     }
 
-    // Add a single problem to the database without updating existing records.
-    async add(id: number, text: string, updateIfExists: boolean = false){
-        const data = [{ text: text, id: id}];
-        if (await this.get(id) !== undefined){
-            if (updateIfExists){
-                return this.update(id, text);
-            } else {
-                throw new Error("Document ID already exists");
-            }
-        } else {
-            return this.table.add(data);
-        }
-    }
-
-    async addBatch(data: {id: number, text: string}[], updateIfExists: boolean = false){
+    async add(data: {id: number, text: string}[], updateIfExists: boolean = false){
         // At time of writing, LanceDB cannot enforce uniqueness, so we have to do it manually.
         // Check for duplicate IDs in the input data.
         const idsInInput = data.map(d => d.id);
@@ -135,12 +119,16 @@ export class SemanticSearchDB{
         for (const datum of dataToUpdate){
             promises.push(this.update(datum.id, datum.text));
         }
-        promises.push(this.table.add(dataToAdd));
+        if (dataToAdd.length > 0){
+            promises.push(this.table.add(dataToAdd));
+        }
         return Promise.all(promises);
     }
 
     // Update an existing problem in the database.
     private async update(id: number, text: string){
+        console.log(id, text);
+        // By default, table.update does not update embeddings, so we do it manually.
         const updatedEmbedding = (await this.cohere.embedDocuments([text]))[0];
         return this.table.update({ where: `id = ${id}` , values: {text: text, vector: updatedEmbedding}});
     }
