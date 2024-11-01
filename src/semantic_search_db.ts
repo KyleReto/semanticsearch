@@ -1,6 +1,7 @@
 import { Cohere } from './cohere.js'
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
+import e from 'express';
 
 const DISTANCE_TYPE: "l2" | "cosine" | "dot" = "l2";
 const TABLE_NAME = "problems";
@@ -39,13 +40,11 @@ export class SemanticSearchDB{
     tableName: string
     table: lancedb.Table
     distanceType: "l2" | "cosine" | "dot"
-    batchConcurrency: number
 
     constructor(){
         this.cohere = new Cohere();
         this.tableName = TABLE_NAME;
         this.distanceType = DISTANCE_TYPE;
-        this.batchConcurrency = BATCH_CONCURRENCY;
     }
     
     // Open the database table. If the table doesn't exist, create it.
@@ -101,16 +100,20 @@ export class SemanticSearchDB{
     }
 
     // Add a single problem to the database without updating existing records.
-    async add(id: number, text: string){
+    async add(id: number, text: string, updateIfExists: boolean = false){
         const data = [{ text: text, id: id}];
         if (await this.get(id) !== undefined){
-            throw new Error("Document ID already exists");
+            if (updateIfExists){
+                return this.update(id, text);
+            } else {
+                throw new Error("Document ID already exists");
+            }
         } else {
             return this.table.add(data);
         }
     }
 
-    async addBatch(data: {id: number, text: string}[]){
+    async addBatch(data: {id: number, text: string}[], updateIfExists: boolean = false){
         // At time of writing, LanceDB cannot enforce uniqueness, so we have to do it manually.
         // Check for duplicate IDs in the input data.
         const idsInInput = data.map(d => d.id);
@@ -122,15 +125,22 @@ export class SemanticSearchDB{
             }
         }
         // Check for duplicate IDs in the database.
-        const matchingIds = await this.table.query().where(`id IN (${idsInInput.join(",")})`).toArray();
-        if (matchingIds.length > 0){
+        const matchingIds = await this.table.query().where(`id IN (${idsInInput.join(",")})`).select('id').toArray();
+        if (!updateIfExists && matchingIds.length > 0){
             throw new Error(`Document ID already exists in the database: ${matchingIds[0].id}`);
         }
-        return this.table.add(data);
+        const dataToAdd = data.filter(d => !matchingIds.some(duplicate => duplicate.id === d.id));
+        const dataToUpdate = data.filter(d => matchingIds.some(duplicate => duplicate.id === d.id));
+        const promises = [];
+        for (const datum of dataToUpdate){
+            promises.push(this.update(datum.id, datum.text));
+        }
+        promises.push(this.table.add(dataToAdd));
+        return Promise.all(promises);
     }
 
     // Update an existing problem in the database.
-    async update(id: number, text: string){
+    private async update(id: number, text: string){
         const updatedEmbedding = (await this.cohere.embedDocuments([text]))[0];
         return this.table.update({ where: `id = ${id}` , values: {text: text, vector: updatedEmbedding}});
     }

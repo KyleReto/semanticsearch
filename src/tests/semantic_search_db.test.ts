@@ -45,11 +45,11 @@ test('Add a New Document', async () => {
     const doc = await global.db.get(7);
     expect(doc.id).toBe(7);
     expect(doc.text).toBe("What is the capital of France?");
-    expect(global.db.add(7, "")).rejects.toThrowError("already exists");
+    expect(global.db.add(7, "a")).rejects.toThrowError("already exists");
 });
 
 test('Update an Existing Document', async () => {
-    await global.db.update(4, "What is the capital of France?");
+    await global.db.add(4, "What is the capital of France?", true);
     const doc = await global.db.get(4);
     expect(doc.id).toBe(4);
     expect(doc.text).toBe("What is the capital of France?");
@@ -102,6 +102,28 @@ test('Add a batch of documents', async () => {
     const dataWithPreexistingID = Array.from(data);
     dataWithPreexistingID.push({id: 5, text: "a"});
     expect(global.db.addBatch(dataWithPreexistingID)).rejects.toThrowError("already exists");
+});
+
+test('Update a batch of documents', async () => {
+    const data = [];
+    for (let i = 7; i < 257; i++){
+        data.push({id: i, text: "a"});
+    }
+    await global.db.addBatch(data, true);
+    
+    // No duplicates in the input data
+    await resetDB();
+    const dataWithDuplicate = Array.from(data);
+    dataWithDuplicate.push({id: 250, text: "a"});
+    expect(global.db.addBatch(dataWithDuplicate, true)).rejects.toThrowError("duplicate");
+    
+    // Duplicates between input and DB are allowed
+    await resetDB();
+    const dataWithPreexistingID = Array.from(data);
+    dataWithPreexistingID.push({id: 5, text: "b"});
+    await global.db.addBatch(dataWithPreexistingID, true);
+    const doc = await global.db.get(5);
+    expect(doc.text).toBe("b");
 });
 
 test('Optimize the database', {timeout: 180*1000}, async () => {
