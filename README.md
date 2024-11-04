@@ -3,6 +3,8 @@
 
 This repo is for exploring semantic search in typescript for the purpose of integrating into the SQ `backend` repo in future.
 
+It uses Cohere's API to create multilingual embeddings, and uses those embeddings to perform semantic search over a locally hosted vector database using LanceDB.
+
 ## To run this repo
 
 1. Run `npm install` in this directory
