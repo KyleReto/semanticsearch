@@ -9,7 +9,7 @@ This repo is for exploring semantic search in typescript for the purpose of inte
 
 2. Copy `src/.env_template` to a new file, `src/.env`. You don't need to change any values in it.
 
-3. Run the scripts:
+3. Run any of the scripts:
     * `npm run start` runs the demo endpoint described in `src/app.ts`.
     * `npm run test` runs the test scripts.
     * `npm run lint` runs the linter.
