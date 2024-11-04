@@ -1,7 +1,6 @@
 import { SemanticSearchDB } from "../semantic_search_db";
 import { beforeAll, test, expect, afterEach, afterAll } from 'vitest'
 import dotenv from 'dotenv'
-import path from 'path'
 
 async function resetDB(){
     await global.db.db.dropTable(global.db.tableName);
@@ -20,7 +19,7 @@ async function resetDB(){
 }
 
 beforeAll(async ()=> {
-    dotenv.config({path: path.join(__dirname, "../.env")});
+    dotenv.config();
     global.db = new SemanticSearchDB();
     await global.db.open();
     await resetDB();
@@ -31,6 +30,7 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+    await global.db.db.dropTable(global.db.tableName);
     await global.db.close();
 });
 
@@ -69,7 +69,7 @@ test('Search for Documents by Vector', async () => {
     const defaultResults = await global.db.search("Protons and neutrons");
     expect([0,1]).toContain(defaultResults[0].id);
     expect([0,1]).toContain(defaultResults[1].id);
-    
+
     const resultsLimit = await global.db.search("Protons and neutrons", 5);
     expect(resultsLimit.length).toBe(5);
 });
