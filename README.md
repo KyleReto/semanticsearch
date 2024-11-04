@@ -7,6 +7,8 @@ It uses Cohere's API to create multilingual embeddings, and uses those embedding
 
 ## To run this repo
 
+You'll first need to set up AWS Bedrock and request permission to use Cohere's Muiltilingual Embedding model through it. After that:
+
 1. Run `npm install` in this directory
 
 2. Copy `src/.env_template` to a new file, `src/.env`. You don't need to change any values in it.
